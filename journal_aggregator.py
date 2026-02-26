@@ -5,14 +5,13 @@ from datetime import timedelta
 import time
 import os
 
-# --- HESION BRANDING ---
-COLOR_BG = "#F2EDE4"         # Lighter touch (Background)
-COLOR_CARD = "#FFFFFF"       # White cards
+# --- HESION BRANDING COLORS ---
+COLOR_BG = "#F2EDE4"         # Light background
 COLOR_TEXT = "#373535"       # Black text
-COLOR_ACCENT = "#926A47"     # Accents (Links, Buttons)
-COLOR_PRIMARY = "#D3C3A7"    # Gold (Borders, decorative)
+COLOR_ACCENT = "#926A47"     # Dark Gold/Brown (Links, Buttons)
+COLOR_PRIMARY = "#D3C3A7"    # Gold (Borders)
 
-# --- CONFIGURATION ---
+# --- JOURNALS LIST ---
 JOURNALS = [
     {"name": "Academy of Management Journal", "issn": "0001-4273"},
     {"name": "Academy of Management Review", "issn": "0363-7425"},
@@ -154,67 +153,43 @@ def generate_html(all_articles):
         topics_set.update(a['topics'])
     topics_list = sorted(list(topics_set))
 
-    # HTML Structure mirrors "2 research_feed.docx" exactly
+    # --- HTML GENERATION ---
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Org Psych Research Briefing</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         
         body {{
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Inter', sans-serif;
             background: {COLOR_BG};
             color: {COLOR_TEXT};
             line-height: 1.6;
-            min-height: 100vh;
             padding: 2rem 1rem;
         }}
 
+        .container {{ max-width: 1200px; margin: 0 auto; }}
+
+        /* HEADER */
         .header-card {{
-            max-width: 1200px;
-            margin: 0 auto 2rem auto;
             background: white;
-            padding: 2rem 1.5rem 1.5rem 1.5rem;
+            padding: 2rem;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             text-align: center;
-            border-top: 5px solid {COLOR_PRIMARY};
+            border-top: 6px solid {COLOR_PRIMARY};
+            margin-bottom: 2rem;
         }}
-
         .logo {{ max-width: 200px; margin-bottom: 1rem; }}
+        h1 {{ font-size: 1.75rem; font-weight: 700; color: {COLOR_TEXT}; margin: 0 0 0.5rem 0; }}
+        .tagline {{ font-size: 0.9rem; color: {COLOR_ACCENT}; font-weight: 600; margin-bottom: 1rem; }}
+        .meta {{ color: #666; font-size: 0.85rem; }}
 
-        .header-card h1 {{
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: {COLOR_TEXT};
-            margin-bottom: 0.4rem;
-            letter-spacing: -0.02em;
-        }}
-
-        .header-card .tagline {{
-            font-size: 0.9rem;
-            color: {COLOR_ACCENT};
-            font-weight: 400;
-            margin-bottom: 1.25rem;
-        }}
-
-        .header-meta {{
-            display: flex;
-            gap: 2rem;
-            justify-content: center;
-            font-size: 0.8125rem;
-            color: #6c757d;
-            flex-wrap: wrap;
-        }}
-
-        .container {{ max-width: 1200px; margin: 0 auto; padding: 0 1rem; }}
-
+        /* FILTERS - ORIGINAL 2-ROW LAYOUT */
         .filters {{
             background: white;
             padding: 1.25rem;
@@ -222,21 +197,251 @@ def generate_html(all_articles):
             margin-bottom: 1.5rem;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }}
-
-        /* Strict Row Layout from Original */
+        
+        /* Row 1: Dropdowns */
         .filter-row {{
             display: flex;
-            gap: 0.875rem;
+            gap: 1rem;
+            margin-bottom: 1rem;
             align-items: flex-end;
-            margin-bottom: 0.875rem;
             flex-wrap: wrap;
         }}
-
         .filter-row:last-child {{ margin-bottom: 0; }}
 
-        .filter-group {{ flex: 1; min-width: 160px; }}
+        .filter-group {{ flex: 1; min-width: 180px; }}
+        
+        /* Specific sizing for Search to be wider in Row 2 */
         .filter-group.search {{ flex: 2; min-width: 220px; }}
 
-        .filter-label {{
-            display: block;
-            font-size: 0.
+        .label {{ display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.3rem; color: {COLOR_TEXT}; }}
+        
+        select, input[type="text"] {{
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }}
+        
+        select:focus, input:focus {{
+            outline: none;
+            border-color: {COLOR_ACCENT};
+            box-shadow: 0 0 0 3px rgba(146, 106, 71, 0.1);
+        }}
+
+        .checkbox-group {{
+            display: flex;
+            align-items: center;
+            padding-top: 1.6rem; /* Push down to align with search box */
+        }}
+        
+        .checkbox-group input {{ margin-right: 0.5rem; cursor: pointer; }}
+        .checkbox-group label {{ margin-right: 1.5rem; font-size: 0.85rem; cursor: pointer; }}
+
+        .count-bar {{ text-align: center; color: #666; font-size: 0.85rem; margin-bottom: 1.5rem; }}
+
+        /* FEED ITEMS */
+        .feed {{ display: flex; flex-direction: column; gap: 1rem; }}
+        
+        .article {{
+            background: white;
+            padding: 1.25rem;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid {COLOR_PRIMARY};
+            transition: transform 0.15s;
+        }}
+        .article:hover {{ transform: translateY(-2px); }}
+
+        .article-title {{ font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; line-height: 1.4; }}
+        .article-title a {{ color: {COLOR_TEXT}; text-decoration: none; }}
+        .article-title a:hover {{ color: {COLOR_ACCENT}; }}
+
+        .article-meta {{ font-size: 0.8rem; color: #666; margin-bottom: 0.8rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }}
+        
+        .journal-badge {{ 
+            background: {COLOR_ACCENT}; color: white; padding: 2px 8px; 
+            border-radius: 10px; font-weight: 600; font-size: 0.75rem; 
+        }}
+
+        .topics {{ display: flex; gap: 0.5rem; margin-bottom: 0.8rem; flex-wrap: wrap; }}
+        .topic {{ background: #f0f0f0; color: #333; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; }}
+
+        .abstract {{ display: none; background: #fafafa; padding: 1rem; border-radius: 4px; font-size: 0.9rem; color: #555; margin-bottom: 1rem; }}
+        .abstract.visible {{ display: block; }}
+
+        .read-link {{ color: {COLOR_ACCENT}; font-weight: 600; text-decoration: none; font-size: 0.85rem; }}
+        .read-link:hover {{ text-decoration: underline; }}
+
+        @media (max-width: 768px) {{
+            .filter-row {{ flex-direction: column; align-items: stretch; }}
+            .checkbox-group {{ padding-top: 0; margin-top: 0.5rem; }}
+        }}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-card">
+        <img src="logo.svg" alt="Hesion Logo" class="logo">
+        <h1>Org Psych Research Briefing</h1>
+        <div class="tagline">Your 90-day snapshot of what's new in the field</div>
+        <div class="meta">
+            📊 {total_articles} Articles | 🕐 Updated: {updated_date}
+        </div>
+    </div>
+
+    <div class="filters">
+        <div class="filter-row">
+            <div class="filter-group">
+                <span class="label">Filter by Journal</span>
+                <select id="journalFilter" onchange="runFilter()">
+                    <option value="all">All Journals</option>
+                    {''.join(f'<option value="{j}">{j}</option>' for j in journals_list)}
+                </select>
+            </div>
+            <div class="filter-group">
+                <span class="label">Filter by Topic</span>
+                <select id="topicFilter" onchange="runFilter()">
+                    <option value="all">All Topics</option>
+                    {''.join(f'<option value="{t}">{t}</option>' for t in topics_list)}
+                </select>
+            </div>
+            <div class="filter-group">
+                <span class="label">Sort By</span>
+                <select id="sortBy" onchange="runSort()">
+                    <option value="newest">Date (Newest First)</option>
+                    <option value="oldest">Date (Oldest First)</option>
+                    <option value="journal">Journal Name</option>
+                    <option value="title">Title (A-Z)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <div class="filter-group search">
+                <span class="label">Search</span>
+                <input type="text" id="searchInput" placeholder="Keywords..." onkeyup="runFilter()">
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="oaCheck" onchange="runFilter()">
+                <label for="oaCheck">Open Access Only</label>
+                
+                <input type="checkbox" id="abstractCheck" onchange="toggleAbstracts()">
+                <label for="abstractCheck">Show Abstracts</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="count-bar" id="countDisplay">Showing {total_articles} articles</div>
+
+    <div id="feed" class="feed">
+"""
+    
+    for article in all_articles:
+        topics_str = " ".join(article['topics'])
+        oa_val = "true" if article['is_oa'] else "false"
+        oa_icon = '🔓' if article['is_oa'] else ''
+        
+        html += f"""
+        <div class="article" 
+             data-journal="{article['journal']}" 
+             data-topics="{topics_str}" 
+             data-title="{article['title'].lower()}" 
+             data-date="{article['date'].timestamp()}"
+             data-oa="{oa_val}">
+             
+            <div class="article-title">
+                <a href="{article['link']}" target="_blank">{article['title']}</a> {oa_icon}
+            </div>
+            
+            <div class="article-meta">
+                <span class="journal-badge">{article['journal']}</span>
+                <span>{article['authors']}</span>
+                <span>{article['date_str']}</span>
+            </div>
+            
+            <div class="topics">
+                {''.join(f'<span class="topic">{t}</span>' for t in article['topics'])}
+            </div>
+            
+            <div class="abstract">
+                {article['abstract']}
+            </div>
+            
+            <a href="{article['link']}" target="_blank" class="read-link">Read Full Article →</a>
+        </div>
+        """
+
+    html += """
+    </div>
+    <div id="noResults" style="display:none; text-align:center; padding:2rem; color:#666;">
+        No articles match your current filters.
+    </div>
+</div>
+
+<script>
+    function toggleAbstracts() {
+        const show = document.getElementById('abstractCheck').checked;
+        document.querySelectorAll('.abstract').forEach(el => el.classList.toggle('visible', show));
+    }
+
+    function runSort() {
+        const feed = document.getElementById('feed');
+        const cards = Array.from(feed.children);
+        const type = document.getElementById('sortBy').value;
+
+        cards.sort((a, b) => {
+            if (type === 'newest') return b.dataset.date - a.dataset.date;
+            if (type === 'oldest') return a.dataset.date - b.dataset.date;
+            if (type === 'journal') return a.dataset.journal.localeCompare(b.dataset.journal);
+            if (type === 'title') return a.dataset.title.localeCompare(b.dataset.title);
+        });
+        cards.forEach(card => feed.appendChild(card));
+    }
+
+    function runFilter() {
+        const journal = document.getElementById('journalFilter').value;
+        const topic = document.getElementById('topicFilter').value;
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const oa = document.getElementById('oaCheck').checked;
+        
+        let count = 0;
+        
+        document.querySelectorAll('.article').forEach(card => {
+            const matchJ = journal === 'all' || card.dataset.journal === journal;
+            const matchT = topic === 'all' || card.dataset.topics.includes(topic);
+            const matchS = card.dataset.title.includes(search);
+            const matchOA = !oa || card.dataset.oa === 'true';
+            
+            if (matchJ && matchT && matchS && matchOA) {
+                card.style.display = 'block';
+                count++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('countDisplay').innerText = `Showing ${count} articles`;
+        document.getElementById('feed').style.display = count === 0 ? 'none' : 'flex';
+        document.getElementById('noResults').style.display = count === 0 ? 'block' : 'none';
+    }
+</script>
+</body>
+</html>
+"""
+    
+    with open("index.html", "w", encoding='utf-8') as f:
+        f.write(html)
+    print("HTML generated successfully.")
+
+def main():
+    all_articles = []
+    for journal in JOURNALS:
+        all_articles.extend(fetch_feed(journal))
+    all_articles.sort(key=lambda x: x['date'], reverse=True)
+    generate_html(all_articles)
+
+if __name__ == "__main__":
+    main()
