@@ -151,18 +151,26 @@ def extract_topics(title, abstract):
             found.append(topic)
     return found[:4] # Return top 4 found
 
-def generate_html(all_articles):
-    total_articles = len(all_articles)
-    updated_date = dt.now().strftime("%B %d, %Y")
+def generate_html(journal_data, output_file="index.html"):
+    """Generate HTML dashboard with Hesion branding and exact 2-row layout"""
     
-    # Sort for filters
+    # Flatten articles list
+    all_articles = []
+    for journal in journal_data:
+        all_articles.extend(journal['articles'])
+
+    # Sort by date (newest first)
+    all_articles.sort(key=lambda x: x['date'] if x['date'] else dt.min, reverse=True)
+
+    # Get unique lists for filters
     journals_list = sorted(list(set(a['journal'] for a in all_articles)))
-    
-    # Extract unique topics
     topics_set = set()
     for a in all_articles:
         topics_set.update(a['topics'])
     topics_list = sorted(list(topics_set))
+
+    total_articles = len(all_articles)
+    updated_date = dt.now().strftime("%B %d, %Y")
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -178,209 +186,305 @@ def generate_html(all_articles):
             --accent: {COLOR_ACCENT};
             --text: {COLOR_TEXT};
         }}
-        body {{ font-family: 'Inter', sans-serif; background: #f8f9fa; color: var(--text); margin: 0; padding: 20px; }}
-        .container {{ max-width: 1200px; margin: 0 auto; }}
         
-        /* Header Styling */
-        .header {{ 
-            background: var(--light); 
-            padding: 2rem; 
-            border-radius: 12px; 
-            text-align: center; 
-            border-bottom: 4px solid var(--accent);
-            margin-bottom: 2rem;
-        }}
-        .logo {{ max-width: 200px; margin-bottom: 1rem; }}
-        h1 {{ color: var(--text); margin: 0; font-size: 2rem; }}
-        .subtitle {{ color: var(--accent); font-weight: 600; margin-top: 0.5rem; }}
-        .stats {{ margin-top: 1rem; font-size: 0.9rem; color: #666; }}
-        
-        /* Controls Styling - UPDATED FOR 2-ROW LAYOUT */
-        .controls {{ 
-            background: white; 
-            padding: 1.5rem; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 2rem;
-        }}
-        .control-row {{
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-        }}
-        .control-row:last-child {{ margin-bottom: 0; }}
-        
-        .control-group {{ flex: 1; min-width: 200px; }}
-        .search-group {{ flex: 3; min-width: 300px; }}
-        .checkbox-group {{ 
-            display: flex; 
-            align-items: center; 
-            gap: 1.5rem; 
-            padding-top: 1.5rem; /* Aligns checkboxes with input text */
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+
+        body {{ 
+            font-family: 'Inter', sans-serif; 
+            background: #f5f7fa; 
+            color: var(--text); 
+            line-height: 1.6;
+            padding: 2rem 1rem;
         }}
 
-        label {{ display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.3rem; color: var(--accent); }}
-        select, input[type="text"] {{ width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; }}
-        input[type="checkbox"] {{ cursor: pointer; }}
-        .checkbox-label {{ cursor: pointer; font-size: 0.9rem; color: var(--text); }}
+        .container {{ max-width: 1200px; margin: 0 auto; }}
+
+        /* HEADER */
+        .header-card {{
+            background: var(--light);
+            padding: 2rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+            border-bottom: 4px solid var(--primary);
+            margin-bottom: 2rem;
+        }}
+        .logo {{ max-width: 180px; margin-bottom: 1rem; display: block; margin-left: auto; margin-right: auto; }}
+        .header-card h1 {{ font-size: 1.75rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }}
+        .tagline {{ font-size: 0.9rem; color: var(--accent); font-weight: 600; margin-bottom: 1.25rem; }}
+        .header-meta {{ display: flex; gap: 2rem; justify-content: center; font-size: 0.85rem; color: #666; }}
+
+        /* FILTERS - EXACT ORIGINAL LAYOUT */
+        .filters {{
+            background: white;
+            padding: 1.25rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }}
         
-        /* Grid Styling */
-        .feed {{ display: grid; gap: 1.5rem; }}
-        .article-card {{ 
-            background: white; 
-            padding: 1.5rem; 
-            border-radius: 8px; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            border-left: 5px solid var(--primary);
+        .filter-row {{
+            display: flex;
+            gap: 0.875rem;
+            align-items: flex-end;
+            margin-bottom: 0.875rem;
+            flex-wrap: wrap;
+        }}
+        
+        .filter-row:last-child {{ margin-bottom: 0; }}
+
+        .filter-group {{ flex: 1; min-width: 160px; }}
+        .filter-group.search {{ flex: 2; min-width: 220px; }}
+
+        .filter-label {{
+            display: block;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.4rem;
+        }}
+
+        select, input[type="text"] {{
+            width: 100%;
+            padding: 0.4rem 0.65rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            background: white;
+            font-family: 'Inter', sans-serif;
+        }}
+        
+        select:focus, input:focus {{
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(146, 106, 71, 0.1);
+        }}
+
+        .checkbox-group {{
+            display: flex;
+            align-items: center;
+            padding-top: 1.5rem; /* Aligns with input boxes */
+            gap: 1.5rem;
+        }}
+        
+        .checkbox-item {{ display: flex; align-items: center; }}
+        .checkbox-item input {{ margin-right: 0.4rem; cursor: pointer; }}
+        .checkbox-item label {{ font-size: 0.85rem; color: var(--text); cursor: pointer; user-select: none; }}
+
+        .article-count {{
+            text-align: center;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 1.25rem;
+            font-size: 0.85rem;
+            color: #666;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }}
+
+        /* FEED GRID */
+        .feed {{ display: flex; flex-direction: column; gap: 0.75rem; }}
+        
+        .article {{
+            background: white;
+            padding: 1rem;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--primary);
             transition: transform 0.2s;
         }}
-        .article-card:hover {{ transform: translateY(-2px); }}
-        .article-meta {{ font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; display: flex; justify-content: space-between; flex-wrap: wrap; }}
-        .journal-tag {{ background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-weight: 600; }}
-        .article-title {{ font-size: 1.1rem; font-weight: 700; color: var(--text); text-decoration: none; display: block; margin-bottom: 0.5rem; }}
-        .article-title:hover {{ color: var(--accent); }}
-        .topics {{ margin-top: 0.5rem; }}
-        .topic-badge {{ background: var(--light); color: var(--accent); font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; margin-right: 5px; }}
-        .abstract {{ display: none; margin-top: 1rem; font-size: 0.9rem; line-height: 1.5; color: #555; background: #f9f9f9; padding: 10px; border-radius: 4px; }}
-        .abstract.visible {{ display: block; }}
-        .read-btn {{ display: inline-block; margin-top: 1rem; color: var(--accent); font-weight: 600; text-decoration: none; font-size: 0.9rem; }}
-        .oa-badge {{ color: green; font-weight: bold; font-size: 0.8rem; margin-left: 5px; }}
+        .article:hover {{ transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+
+        .article-header {{ display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.5rem; }}
+        .article-title {{ flex: 1; font-size: 1rem; font-weight: 700; line-height: 1.4; }}
+        .article-title a {{ color: var(--text); text-decoration: none; }}
+        .article-title a:hover {{ color: var(--accent); }}
         
+        .oa-badge {{ 
+            font-size: 0.7rem; 
+            background: #e6f4ea; 
+            color: #1e8e3e; 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            font-weight: bold;
+            white-space: nowrap;
+        }}
+
+        .article-meta {{ display: flex; gap: 0.75rem; margin-bottom: 0.6rem; font-size: 0.8rem; color: #666; flex-wrap: wrap; align-items: center; }}
+        .journal-badge {{ 
+            background: var(--primary); 
+            color: white; 
+            padding: 0.2rem 0.6rem; 
+            border-radius: 12px; 
+            font-size: 0.7rem; 
+            font-weight: 600; 
+        }}
+
+        .topics {{ display: flex; gap: 0.4rem; margin-bottom: 0.6rem; flex-wrap: wrap; }}
+        .topic-tag {{ 
+            background: var(--light); 
+            color: var(--accent); 
+            padding: 0.2rem 0.5rem; 
+            border-radius: 4px; 
+            font-size: 0.7rem; 
+            font-weight: 600; 
+        }}
+
+        .abstract {{ display: none; color: #555; font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.8rem; background: #fafafa; padding: 10px; border-radius: 4px; }}
+        .abstract.visible {{ display: block; }}
+
+        .read-more {{ font-size: 0.85rem; font-weight: 600; color: var(--accent); text-decoration: none; }}
+        .read-more:hover {{ text-decoration: underline; }}
+
         @media (max-width: 768px) {{
-            .control-row {{ flex-direction: column; gap: 0.5rem; }}
-            .checkbox-group {{ padding-top: 0; }}
+            .filter-row {{ flex-direction: column; align-items: stretch; }}
+            .filter-group, .filter-group.search {{ width: 100%; }}
+            .checkbox-group {{ padding-top: 0; margin-top: 0.5rem; }}
         }}
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header">
-        <img src="Hesion_logo_gold.png" alt="Hesion Leadership Consulting" class="logo">
+    <div class="header-card">
+        <img src="Hesion_logo_gold.png" alt="Hesion Logo" class="logo">
         <h1>Org Psych Research Briefing</h1>
-        <div class="subtitle">Your 90-day snapshot of what’s new in the field</div>
-        <div class="stats">
-            {total_articles} Articles | Last Updated: {updated_date}
+        <div class="tagline">Your 90-day snapshot of what's new in the field</div>
+        <div class="header-meta">
+            <span>📊 {total_articles} articles</span>
+            <span>🕐 Updated: {updated_date}</span>
         </div>
     </div>
 
-    <div class="controls">
-        <div class="control-row">
-            <div class="control-group">
-                <label>Filter by Journal</label>
-                <select id="journalFilter" onchange="applyFilters()">
+    <div class="filters">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label class="filter-label" for="journal-filter">Filter by Journal</label>
+                <select id="journal-filter" onchange="filterArticles()">
                     <option value="all">All Journals</option>
                     {''.join(f'<option value="{j}">{j}</option>' for j in journals_list)}
                 </select>
             </div>
-            <div class="control-group">
-                <label>Filter by Topic</label>
-                <select id="topicFilter" onchange="applyFilters()">
+            <div class="filter-group">
+                <label class="filter-label" for="topic-filter">Filter by Topic</label>
+                <select id="topic-filter" onchange="filterArticles()">
                     <option value="all">All Topics</option>
                     {''.join(f'<option value="{t}">{t}</option>' for t in topics_list)}
                 </select>
             </div>
-            <div class="control-group">
-                <label>Sort By</label>
-                <select id="sortBy" onchange="applySort()">
-                    <option value="newest">Date (Newest First)</option>
-                    <option value="oldest">Date (Oldest First)</option>
-                    <option value="journal">Journal Name</option>
+            <div class="filter-group">
+                <label class="filter-label" for="sort-by">Sort by</label>
+                <select id="sort-by" onchange="sortArticles()">
+                    <option value="date-newest">Date (Newest First)</option>
+                    <option value="date-oldest">Date (Oldest First)</option>
+                    <option value="journal">Journal</option>
                     <option value="title">Title (A-Z)</option>
                 </select>
             </div>
         </div>
 
-        <div class="control-row">
-            <div class="search-group">
-                <label>Search</label>
-                <input type="text" id="searchInput" placeholder="Keywords..." onkeyup="applyFilters()">
+        <div class="filter-row">
+            <div class="filter-group search">
+                <label class="filter-label" for="search">Search</label>
+                <input type="text" id="search" placeholder="Search titles..." onkeyup="filterArticles()">
             </div>
             <div class="checkbox-group">
-                <div>
-                    <input type="checkbox" id="oaCheck" onchange="applyFilters()">
-                    <span class="checkbox-label" onclick="document.getElementById('oaCheck').click()">Open Access Only</span>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="oa-only" onchange="filterArticles()">
+                    <label for="oa-only">Open Access Only</label>
                 </div>
-                <div>
-                    <input type="checkbox" id="abstractCheck" onchange="toggleAbstracts()">
-                    <span class="checkbox-label" onclick="document.getElementById('abstractCheck').click()">Show Abstracts</span>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="show-abstracts" onchange="toggleAbstracts()">
+                    <label for="show-abstracts">Show Abstracts</label>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="feed" id="feedGrid">
+    <div class="article-count" id="article-count">
+        Showing {total_articles} articles
+    </div>
+
+    <div id="feed-container" class="feed">
 """
-    
+
     for article in all_articles:
         topics_str = " ".join(article['topics'])
-        oa_class = "oa-true" if article['is_oa'] else "oa-false"
+        oa_attr = "true" if article['is_oa'] else "false"
         oa_badge = '<span class="oa-badge">🔓 Open Access</span>' if article['is_oa'] else ''
         
         html += f"""
-        <div class="article-card" 
+        <div class="article" 
              data-journal="{article['journal']}" 
              data-topics="{topics_str}" 
              data-title="{article['title'].lower()}" 
-             data-date="{article['date'].timestamp()}"
-             data-oa="{str(article['is_oa']).lower()}">
+             data-oa="{oa_attr}" 
+             data-date="{article['date'].timestamp()}">
             
-            <div class="article-meta">
-                <span class="journal-tag">{article['journal']}</span>
-                <span>{article['date_str']}</span>
+            <div class="article-header">
+                <div class="article-title">
+                    <a href="{article['link']}" target="_blank">{article['title']}</a> {oa_badge}
+                </div>
             </div>
             
-            <a href="{article['link']}" target="_blank" class="article-title">{article['title']} {oa_badge}</a>
-            <div style="font-size: 0.9rem; font-style: italic;">{article['authors']}</div>
+            <div class="article-meta">
+                <span class="journal-badge">{article['journal']}</span>
+                <span class="authors">{article['authors']}</span>
+                <span class="date">{article['date_str']}</span>
+            </div>
             
             <div class="topics">
-                {''.join(f'<span class="topic-badge">{t}</span>' for t in article['topics'])}
+                {''.join(f'<span class="topic-tag">{t}</span>' for t in article['topics'])}
             </div>
             
             <div class="abstract">
-                <strong>Abstract:</strong><br>
-                {article['abstract'][:600]}...
+                {article['abstract']}
             </div>
             
-            <a href="{article['link']}" target="_blank" class="read-btn">Read Full Article →</a>
+            <a href="{article['link']}" target="_blank" class="read-more">Read full article →</a>
         </div>
         """
 
     html += """
     </div>
+    <div class="no-results" id="no-results" style="display: none; text-align: center; padding: 2rem; color: #666;">
+        No articles match your current filters.
+    </div>
 </div>
 
 <script>
     function toggleAbstracts() {
-        const show = document.getElementById('abstractCheck').checked;
+        const show = document.getElementById('show-abstracts').checked;
         document.querySelectorAll('.abstract').forEach(el => {
             el.classList.toggle('visible', show);
         });
     }
 
-    function applySort() {
-        const grid = document.getElementById('feedGrid');
-        const cards = Array.from(grid.children);
-        const criteria = document.getElementById('sortBy').value;
+    function applySort() { return sortArticles(); } // Alias for safety
+
+    function sortArticles() {
+        const container = document.getElementById('feed-container');
+        const cards = Array.from(container.children);
+        const criteria = document.getElementById('sort-by').value;
 
         cards.sort((a, b) => {
-            if (criteria === 'newest') return b.dataset.date - a.dataset.date;
-            if (criteria === 'oldest') return a.dataset.date - b.dataset.date;
+            if (criteria === 'date-newest') return b.dataset.date - a.dataset.date;
+            if (criteria === 'date-oldest') return a.dataset.date - b.dataset.date;
             if (criteria === 'journal') return a.dataset.journal.localeCompare(b.dataset.journal);
             if (criteria === 'title') return a.dataset.title.localeCompare(b.dataset.title);
         });
 
-        cards.forEach(card => grid.appendChild(card));
+        cards.forEach(card => container.appendChild(card));
     }
 
-    function applyFilters() {
-        const journal = document.getElementById('journalFilter').value;
-        const topic = document.getElementById('topicFilter').value;
-        const search = document.getElementById('searchInput').value.toLowerCase();
-        const oaOnly = document.getElementById('oaCheck').checked;
+    function filterArticles() {
+        const journal = document.getElementById('journal-filter').value;
+        const topic = document.getElementById('topic-filter').value;
+        const search = document.getElementById('search').value.toLowerCase();
+        const oaOnly = document.getElementById('oa-only').checked;
+        let visibleCount = 0;
 
-        document.querySelectorAll('.article-card').forEach(card => {
+        document.querySelectorAll('.article').forEach(card => {
             const matchesJournal = journal === 'all' || card.dataset.journal === journal;
             const matchesTopic = topic === 'all' || card.dataset.topics.includes(topic);
             const matchesSearch = card.dataset.title.includes(search);
@@ -388,19 +492,35 @@ def generate_html(all_articles):
 
             if (matchesJournal && matchesTopic && matchesSearch && matchesOA) {
                 card.style.display = 'block';
+                visibleCount++;
             } else {
                 card.style.display = 'none';
             }
         });
+
+        // Update count
+        const countText = visibleCount === 1 ? 'article' : 'articles';
+        document.getElementById('article-count').innerText = `Showing ${visibleCount} ${countText}`;
+        
+        // Show/Hide "No Results"
+        const noResults = document.getElementById('no-results');
+        const feed = document.getElementById('feed-container');
+        if (visibleCount === 0) {
+            feed.style.display = 'none';
+            noResults.style.display = 'block';
+        } else {
+            feed.style.display = 'flex';
+            noResults.style.display = 'none';
+        }
     }
 </script>
 </body>
 </html>
 """
     
-    with open("index.html", "w", encoding='utf-8') as f:
+    with open(output_file, "w", encoding='utf-8') as f:
         f.write(html)
-    print("HTML generated successfully.")
+    print(f"HTML generated: {output_file}")
 
 def main():
     all_articles = []
