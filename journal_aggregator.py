@@ -38,6 +38,18 @@ JOURNALS = [
     {"name": "Work & Stress", "issn": "1464-5335"}
 ]
 
+def fetch_semantic_scholar_abstract(doi):
+    try:
+        url = f"https://api.semanticscholar.org/graph/v1/paper/DOI:{doi}?fields=abstract"
+        req = urllib.request.Request(url, headers={'User-Agent': 'HesionResearchFeed/1.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode())
+        if 'abstract' in data and data['abstract']:
+            return data['abstract']
+        return ""
+    except Exception:
+        return ""
+
 def fetch_feed(journal, max_articles=20):
     try:
         print(f"Fetching {journal['name']}...")
@@ -87,7 +99,9 @@ def fetch_feed(journal, max_articles=20):
                 abstract = item.get('abstract', '')
                 if abstract:
                     abstract = abstract.replace('<jats:p>', '').replace('</jats:p>', '').replace('<p>', '').replace('</p>', '').replace('<jats:title>', '').replace('</jats:title>', '')
-                
+
+                if not abstract and doi:
+    abstract = fetch_semantic_scholar_abstract(doi)
                 title = item.get('title', ['No Title'])[0]
                 topics = extract_topics(title, abstract)
 
