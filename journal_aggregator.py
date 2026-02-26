@@ -92,8 +92,8 @@ def fetch_feed(journal, max_articles=20):
                 topics = extract_topics(title, abstract)
 
                 is_oa = False
-if 'license' in item and len(item['license']) > 0:
-    is_oa = True
+                if 'license' in item and len(item['license']) > 0:
+                    is_oa = True
 
                 articles.append({
                     "title": title,
