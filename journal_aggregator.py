@@ -237,7 +237,7 @@ def generate_html(all_articles):
         }}
         
         .checkbox-group input {{ margin-right: 0.5rem; cursor: pointer; }}
-        .checkbox-group label {{ margin-right: 1.5rem; font-size: 0.85rem; cursor: pointer; }}
+        .checkbox-group label {{ font-size: 0.85rem; cursor: pointer; }}
 
         .count-bar {{ text-align: center; color: #666; font-size: 0.85rem; margin-bottom: 1.5rem; }}
 
@@ -325,12 +325,13 @@ def generate_html(all_articles):
                 <input type="text" id="searchInput" placeholder="Keywords..." onkeyup="runFilter()">
             </div>
             <div class="checkbox-group">
-                <input type="checkbox" id="oaCheck" onchange="runFilter()">
-                <label for="oaCheck">Open Access Only</label>
-                
-                <input type="checkbox" id="abstractCheck" onchange="toggleAbstracts()">
-                <label for="abstractCheck">Show Abstracts</label>
-            </div>
+    <input type="checkbox" id="oaCheck" onchange="runFilter()">
+    <label for="oaCheck">Open Access Only</label>
+</div>
+<div class="checkbox-group">
+    <input type="checkbox" id="abstractCheck" onchange="toggleAbstracts()">
+    <label for="abstractCheck">Show Abstracts</label>
+</div>
         </div>
     </div>
 
