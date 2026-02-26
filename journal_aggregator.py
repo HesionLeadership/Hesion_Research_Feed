@@ -101,7 +101,7 @@ def fetch_feed(journal, max_articles=20):
                     abstract = abstract.replace('<jats:p>', '').replace('</jats:p>', '').replace('<p>', '').replace('</p>', '').replace('<jats:title>', '').replace('</jats:title>', '')
 
                 if not abstract and doi:
-    abstract = fetch_semantic_scholar_abstract(doi)
+                    abstract = fetch_semantic_scholar_abstract(doi)
                 title = item.get('title', ['No Title'])[0]
                 topics = extract_topics(title, abstract)
 
