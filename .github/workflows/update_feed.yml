@@ -1,0 +1,31 @@
+name: Update Hesion Research Feed
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # Runs daily at 9am UTC
+  workflow_dispatch: # Allows manual button click
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Aggregator
+        run: python journal_aggregator.py
+
+      - name: Commit and Push Changes
+        run: |
+          git config user.name "Hesion Bot"
+          git config user.email "bot@hesion.com"
+          git add index.html
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update research feed" && git push)
