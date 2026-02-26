@@ -195,21 +195,35 @@ def generate_html(all_articles):
         .subtitle {{ color: var(--accent); font-weight: 600; margin-top: 0.5rem; }}
         .stats {{ margin-top: 1rem; font-size: 0.9rem; color: #666; }}
         
-        /* Controls Styling */
+        /* Controls Styling - UPDATED FOR 2-ROW LAYOUT */
         .controls {{ 
             background: white; 
             padding: 1.5rem; 
             border-radius: 8px; 
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
             margin-bottom: 2rem;
         }}
+        .control-row {{
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }}
+        .control-row:last-child {{ margin-bottom: 0; }}
+        
+        .control-group {{ flex: 1; min-width: 200px; }}
+        .search-group {{ flex: 3; min-width: 300px; }}
+        .checkbox-group {{ 
+            display: flex; 
+            align-items: center; 
+            gap: 1.5rem; 
+            padding-top: 1.5rem; /* Aligns checkboxes with input text */
+        }}
+
         label {{ display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 0.3rem; color: var(--accent); }}
-        select, input {{ width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }}
-        .checkbox-row {{ display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }}
-        .checkbox-row label {{ margin: 0; cursor: pointer; color: var(--text); }}
+        select, input[type="text"] {{ width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; box-sizing: border-box; }}
+        input[type="checkbox"] {{ cursor: pointer; }}
+        .checkbox-label {{ cursor: pointer; font-size: 0.9rem; color: var(--text); }}
         
         /* Grid Styling */
         .feed {{ display: grid; gap: 1.5rem; }}
@@ -232,13 +246,18 @@ def generate_html(all_articles):
         .abstract.visible {{ display: block; }}
         .read-btn {{ display: inline-block; margin-top: 1rem; color: var(--accent); font-weight: 600; text-decoration: none; font-size: 0.9rem; }}
         .oa-badge {{ color: green; font-weight: bold; font-size: 0.8rem; margin-left: 5px; }}
+        
+        @media (max-width: 768px) {{
+            .control-row {{ flex-direction: column; gap: 0.5rem; }}
+            .checkbox-group {{ padding-top: 0; }}
+        }}
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <img src="logo.svg" alt="Hesion Leadership Consulting" class="logo">
+        <img src="Hesion_logo_gold.png" alt="Hesion Leadership Consulting" class="logo">
         <h1>Org Psych Research Briefing</h1>
         <div class="subtitle">Your 90-day snapshot of what’s new in the field</div>
         <div class="stats">
@@ -247,41 +266,46 @@ def generate_html(all_articles):
     </div>
 
     <div class="controls">
-        <div>
-            <label>Filter by Journal</label>
-            <select id="journalFilter" onchange="applyFilters()">
-                <option value="all">All Journals</option>
-                {''.join(f'<option value="{j}">{j}</option>' for j in journals_list)}
-            </select>
-        </div>
-        <div>
-            <label>Filter by Topic</label>
-            <select id="topicFilter" onchange="applyFilters()">
-                <option value="all">All Topics</option>
-                {''.join(f'<option value="{t}">{t}</option>' for t in topics_list)}
-            </select>
-        </div>
-        <div>
-            <label>Sort By</label>
-            <select id="sortBy" onchange="applySort()">
-                <option value="newest">Date (Newest First)</option>
-                <option value="oldest">Date (Oldest First)</option>
-                <option value="journal">Journal Name</option>
-                <option value="title">Title (A-Z)</option>
-            </select>
-        </div>
-        <div>
-            <label>Search</label>
-            <input type="text" id="searchInput" placeholder="Keywords..." onkeyup="applyFilters()">
-        </div>
-        <div class="checkbox-row" style="grid-column: 1 / -1;">
-            <div style="display:flex; align-items:center; margin-right: 20px;">
-                <input type="checkbox" id="oaCheck" onchange="applyFilters()">
-                <label for="oaCheck" style="margin-left:5px;">Open Access Only</label>
+        <div class="control-row">
+            <div class="control-group">
+                <label>Filter by Journal</label>
+                <select id="journalFilter" onchange="applyFilters()">
+                    <option value="all">All Journals</option>
+                    {''.join(f'<option value="{j}">{j}</option>' for j in journals_list)}
+                </select>
             </div>
-            <div style="display:flex; align-items:center;">
-                <input type="checkbox" id="abstractCheck" onchange="toggleAbstracts()">
-                <label for="abstractCheck" style="margin-left:5px;">Show Abstracts</label>
+            <div class="control-group">
+                <label>Filter by Topic</label>
+                <select id="topicFilter" onchange="applyFilters()">
+                    <option value="all">All Topics</option>
+                    {''.join(f'<option value="{t}">{t}</option>' for t in topics_list)}
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Sort By</label>
+                <select id="sortBy" onchange="applySort()">
+                    <option value="newest">Date (Newest First)</option>
+                    <option value="oldest">Date (Oldest First)</option>
+                    <option value="journal">Journal Name</option>
+                    <option value="title">Title (A-Z)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="control-row">
+            <div class="search-group">
+                <label>Search</label>
+                <input type="text" id="searchInput" placeholder="Keywords..." onkeyup="applyFilters()">
+            </div>
+            <div class="checkbox-group">
+                <div>
+                    <input type="checkbox" id="oaCheck" onchange="applyFilters()">
+                    <span class="checkbox-label" onclick="document.getElementById('oaCheck').click()">Open Access Only</span>
+                </div>
+                <div>
+                    <input type="checkbox" id="abstractCheck" onchange="toggleAbstracts()">
+                    <span class="checkbox-label" onclick="document.getElementById('abstractCheck').click()">Show Abstracts</span>
+                </div>
             </div>
         </div>
     </div>
