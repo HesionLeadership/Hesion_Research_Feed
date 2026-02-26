@@ -357,7 +357,7 @@ def generate_html(all_articles):
     for article in all_articles:
         topics_str = " ".join(article['topics'])
         oa_val = "true" if article['is_oa'] else "false"
-        oa_icon = '🔓' if article['is_oa'] else ''
+        oa_icon = '<span style="font-size:0.75rem; color:#4CAF50; font-weight:700; border:1px solid #4CAF50; border-radius:4px; padding:1px 5px;">OA</span>' if article['is_oa'] else ''
         
         html += f"""
         <div class="article" 
