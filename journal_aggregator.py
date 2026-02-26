@@ -5,14 +5,14 @@ from datetime import timedelta
 import time
 import os
 
-# --- CONFIGURATION ---
-# Hesion Branding Colors
-COLOR_PRIMARY = "#D3C3A7"    # Gold/Tan
-COLOR_LIGHT = "#F2EDE4"      # Light background
-COLOR_ACCENT = "#926A47"     # Darker accent
+# --- HESION BRANDING ---
+COLOR_BG = "#F2EDE4"         # Lighter touch (Background)
+COLOR_CARD = "#FFFFFF"       # White cards
 COLOR_TEXT = "#373535"       # Black text
+COLOR_ACCENT = "#926A47"     # Accents (Links, Buttons)
+COLOR_PRIMARY = "#D3C3A7"    # Gold (Borders, decorative)
 
-# Journal Configuration (ISSN lookup for CrossRef)
+# --- CONFIGURATION ---
 JOURNALS = [
     {"name": "Academy of Management Journal", "issn": "0001-4273"},
     {"name": "Academy of Management Review", "issn": "0363-7425"},
@@ -22,7 +22,7 @@ JOURNALS = [
     {"name": "Human Performance", "issn": "0895-9285"},
     {"name": "Human Resource Development Quarterly", "issn": "1044-8004"},
     {"name": "Human Resource Management", "issn": "1099-050X"},
-    {"name": "Ind. and Org. Psychology: Perspectives on Science and Practice", "issn": "1754-9426"},
+    {"name": "Industrial and Organizational Psychology: Perspectives on Science and Practice", "issn": "1754-9426"},
     {"name": "International Journal of Selection and Assessment", "issn": "0965-075X"},
     {"name": "Journal of Applied Psychology", "issn": "0021-9010"},
     {"name": "Journal of Business and Psychology", "issn": "1573-353X"},
@@ -40,18 +40,16 @@ JOURNALS = [
 ]
 
 def fetch_feed(journal, max_articles=20):
-    """Fetch recent articles from CrossRef API"""
     try:
         print(f"Fetching {journal['name']}...")
         ninety_days_ago = dt.now() - timedelta(days=90)
         date_filter = ninety_days_ago.strftime("%Y-%m-%d")
         
-        # CrossRef API URL
         base_url = f"https://api.crossref.org/journals/{journal['issn']}/works"
         params = f"?rows={max_articles}&filter=from-online-pub-date:{date_filter}&sort=published&order=desc"
         url = base_url + params
         
-        req = urllib.request.Request(url, headers={'User-Agent': 'HesionResearchFeed/1.0 (mailto:admin@hesion.com)'})
+        req = urllib.request.Request(url, headers={'User-Agent': 'HesionResearchFeed/1.0'})
         
         with urllib.request.urlopen(req, timeout=30) as response:
             data = json.loads(response.read().decode())
@@ -59,24 +57,24 @@ def fetch_feed(journal, max_articles=20):
         articles = []
         if 'message' in data and 'items' in data['message']:
             for item in data['message']['items']:
-                # Date parsing logic
                 pub_date = None
                 date_str = "Date unavailable"
-                date_parts = item.get('published-online', {}).get('date-parts', [[]])[0]
-                if not date_parts:
-                    date_parts = item.get('published-print', {}).get('date-parts', [[]])[0]
                 
-                if date_parts:
-                    year = date_parts[0]
-                    month = date_parts[1] if len(date_parts) > 1 else 1
-                    day = date_parts[2] if len(date_parts) > 2 else 1
-                    pub_date = dt(year, month, day)
-                    date_str = pub_date.strftime("%B %d, %Y")
+                # Try multiple date fields
+                for date_field in ['published-online', 'published-print', 'published']:
+                    if date_field in item and 'date-parts' in item[date_field]:
+                        parts = item[date_field]['date-parts'][0]
+                        if parts:
+                            year = parts[0]
+                            month = parts[1] if len(parts) > 1 else 1
+                            day = parts[2] if len(parts) > 2 else 1
+                            pub_date = dt(year, month, day)
+                            date_str = pub_date.strftime("%B %d, %Y")
+                            break
                 
                 if not pub_date or pub_date < ninety_days_ago:
                     continue
 
-                # Authors
                 authors = []
                 if 'author' in item:
                     for author in item['author'][:3]:
@@ -84,20 +82,16 @@ def fetch_feed(journal, max_articles=20):
                             authors.append(author['family'])
                 author_str = ", ".join(authors) if authors else "Unknown Author"
 
-                # Link
                 doi = item.get('DOI', '')
                 link = f"https://doi.org/{doi}" if doi else item.get('URL', '')
                 
-                # Abstract & Title
                 abstract = item.get('abstract', '')
-                # Clean up abstract XML tags if present
-                abstract = abstract.replace('<jats:p>', '').replace('</jats:p>', '').replace('<p>', '').replace('</p>', '')
+                if abstract:
+                    abstract = abstract.replace('<jats:p>', '').replace('</jats:p>', '').replace('<p>', '').replace('</p>', '').replace('<jats:title>', '').replace('</jats:title>', '')
+                
                 title = item.get('title', ['No Title'])[0]
-
-                # Topics
                 topics = extract_topics(title, abstract)
 
-                # Open Access Check
                 is_oa = False
                 if 'license' in item:
                     for lic in item['license']:
@@ -122,12 +116,10 @@ def fetch_feed(journal, max_articles=20):
 
 def extract_topics(title, abstract):
     text = (title + " " + (abstract or "")).lower()
-    
-    # Specific Hesion Topics mapping
     keywords = {
-        'AI Technology': ['artificial intelligence', ' ai ', 'algorithm', 'technology', 'automation'],
+        'AI Technology': ['artificial intelligence', ' ai ', 'algorithm', 'technology'],
         'OCB': ['ocb', 'citizenship behavior', 'helping', 'prosocial'],
-        'Creativity': ['creativity', 'innovation', 'creative', 'idea generation'],
+        'Creativity': ['creativity', 'innovation', 'creative', 'idea'],
         'Culture': ['culture', 'climate', 'norms'],
         'Diversity': ['diversity', 'inclusion', 'equity', 'minority', 'gender', 'race'],
         'Job Design': ['job design', 'job crafting', 'autonomy', 'workload'],
@@ -149,72 +141,80 @@ def extract_topics(title, abstract):
     for topic, keys in keywords.items():
         if any(k in text for k in keys):
             found.append(topic)
-    return found[:4] # Return top 4 found
+    return found[:4]
 
-def generate_html(journal_data, output_file="index.html"):
-    """Generate HTML dashboard with Hesion branding and exact 2-row layout"""
+def generate_html(all_articles):
+    total_articles = len(all_articles)
+    updated_date = dt.now().strftime("%B %d, %Y")
     
-    # Flatten articles list
-    all_articles = []
-    for journal in journal_data:
-        all_articles.extend(journal['articles'])
-
-    # Sort by date (newest first)
-    all_articles.sort(key=lambda x: x['date'] if x['date'] else dt.min, reverse=True)
-
-    # Get unique lists for filters
     journals_list = sorted(list(set(a['journal'] for a in all_articles)))
+    
     topics_set = set()
     for a in all_articles:
         topics_set.update(a['topics'])
     topics_list = sorted(list(topics_set))
 
-    total_articles = len(all_articles)
-    updated_date = dt.now().strftime("%B %d, %Y")
-
+    # HTML Structure mirrors "2 research_feed.docx" exactly
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Org Psych Research Briefing | Hesion</title>
+    <title>Org Psych Research Briefing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {{
-            --primary: {COLOR_PRIMARY};
-            --light: {COLOR_LIGHT};
-            --accent: {COLOR_ACCENT};
-            --text: {COLOR_TEXT};
-        }}
-        
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-
-        body {{ 
-            font-family: 'Inter', sans-serif; 
-            background: #f5f7fa; 
-            color: var(--text); 
+        
+        body {{
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: {COLOR_BG};
+            color: {COLOR_TEXT};
             line-height: 1.6;
+            min-height: 100vh;
             padding: 2rem 1rem;
         }}
 
-        .container {{ max-width: 1200px; margin: 0 auto; }}
-
-        /* HEADER */
         .header-card {{
-            background: var(--light);
-            padding: 2rem 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto 2rem auto;
+            background: white;
+            padding: 2rem 1.5rem 1.5rem 1.5rem;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             text-align: center;
-            border-bottom: 4px solid var(--primary);
-            margin-bottom: 2rem;
+            border-top: 5px solid {COLOR_PRIMARY};
         }}
-        .logo {{ max-width: 180px; margin-bottom: 1rem; display: block; margin-left: auto; margin-right: auto; }}
-        .header-card h1 {{ font-size: 1.75rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }}
-        .tagline {{ font-size: 0.9rem; color: var(--accent); font-weight: 600; margin-bottom: 1.25rem; }}
-        .header-meta {{ display: flex; gap: 2rem; justify-content: center; font-size: 0.85rem; color: #666; }}
 
-        /* FILTERS - EXACT ORIGINAL LAYOUT */
+        .logo {{ max-width: 200px; margin-bottom: 1rem; }}
+
+        .header-card h1 {{
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: {COLOR_TEXT};
+            margin-bottom: 0.4rem;
+            letter-spacing: -0.02em;
+        }}
+
+        .header-card .tagline {{
+            font-size: 0.9rem;
+            color: {COLOR_ACCENT};
+            font-weight: 400;
+            margin-bottom: 1.25rem;
+        }}
+
+        .header-meta {{
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            font-size: 0.8125rem;
+            color: #6c757d;
+            flex-wrap: wrap;
+        }}
+
+        .container {{ max-width: 1200px; margin: 0 auto; padding: 0 1rem; }}
+
         .filters {{
             background: white;
             padding: 1.25rem;
@@ -222,7 +222,8 @@ def generate_html(journal_data, output_file="index.html"):
             margin-bottom: 1.5rem;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }}
-        
+
+        /* Strict Row Layout from Original */
         .filter-row {{
             display: flex;
             gap: 0.875rem;
@@ -230,7 +231,7 @@ def generate_html(journal_data, output_file="index.html"):
             margin-bottom: 0.875rem;
             flex-wrap: wrap;
         }}
-        
+
         .filter-row:last-child {{ margin-bottom: 0; }}
 
         .filter-group {{ flex: 1; min-width: 160px; }}
@@ -238,299 +239,4 @@ def generate_html(journal_data, output_file="index.html"):
 
         .filter-label {{
             display: block;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            color: var(--accent);
-            margin-bottom: 0.4rem;
-        }}
-
-        select, input[type="text"] {{
-            width: 100%;
-            padding: 0.4rem 0.65rem;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            background: white;
-            font-family: 'Inter', sans-serif;
-        }}
-        
-        select:focus, input:focus {{
-            outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(146, 106, 71, 0.1);
-        }}
-
-        .checkbox-group {{
-            display: flex;
-            align-items: center;
-            padding-top: 1.5rem; /* Aligns with input boxes */
-            gap: 1.5rem;
-        }}
-        
-        .checkbox-item {{ display: flex; align-items: center; }}
-        .checkbox-item input {{ margin-right: 0.4rem; cursor: pointer; }}
-        .checkbox-item label {{ font-size: 0.85rem; color: var(--text); cursor: pointer; user-select: none; }}
-
-        .article-count {{
-            text-align: center;
-            padding: 0.75rem;
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 1.25rem;
-            font-size: 0.85rem;
-            color: #666;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }}
-
-        /* FEED GRID */
-        .feed {{ display: flex; flex-direction: column; gap: 0.75rem; }}
-        
-        .article {{
-            background: white;
-            padding: 1rem;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-left: 4px solid var(--primary);
-            transition: transform 0.2s;
-        }}
-        .article:hover {{ transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-
-        .article-header {{ display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.5rem; }}
-        .article-title {{ flex: 1; font-size: 1rem; font-weight: 700; line-height: 1.4; }}
-        .article-title a {{ color: var(--text); text-decoration: none; }}
-        .article-title a:hover {{ color: var(--accent); }}
-        
-        .oa-badge {{ 
-            font-size: 0.7rem; 
-            background: #e6f4ea; 
-            color: #1e8e3e; 
-            padding: 2px 6px; 
-            border-radius: 4px; 
-            font-weight: bold;
-            white-space: nowrap;
-        }}
-
-        .article-meta {{ display: flex; gap: 0.75rem; margin-bottom: 0.6rem; font-size: 0.8rem; color: #666; flex-wrap: wrap; align-items: center; }}
-        .journal-badge {{ 
-            background: var(--primary); 
-            color: white; 
-            padding: 0.2rem 0.6rem; 
-            border-radius: 12px; 
-            font-size: 0.7rem; 
-            font-weight: 600; 
-        }}
-
-        .topics {{ display: flex; gap: 0.4rem; margin-bottom: 0.6rem; flex-wrap: wrap; }}
-        .topic-tag {{ 
-            background: var(--light); 
-            color: var(--accent); 
-            padding: 0.2rem 0.5rem; 
-            border-radius: 4px; 
-            font-size: 0.7rem; 
-            font-weight: 600; 
-        }}
-
-        .abstract {{ display: none; color: #555; font-size: 0.9rem; line-height: 1.5; margin-bottom: 0.8rem; background: #fafafa; padding: 10px; border-radius: 4px; }}
-        .abstract.visible {{ display: block; }}
-
-        .read-more {{ font-size: 0.85rem; font-weight: 600; color: var(--accent); text-decoration: none; }}
-        .read-more:hover {{ text-decoration: underline; }}
-
-        @media (max-width: 768px) {{
-            .filter-row {{ flex-direction: column; align-items: stretch; }}
-            .filter-group, .filter-group.search {{ width: 100%; }}
-            .checkbox-group {{ padding-top: 0; margin-top: 0.5rem; }}
-        }}
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <div class="header-card">
-        <img src="Hesion_logo_gold.png" alt="Hesion Logo" class="logo">
-        <h1>Org Psych Research Briefing</h1>
-        <div class="tagline">Your 90-day snapshot of what's new in the field</div>
-        <div class="header-meta">
-            <span>📊 {total_articles} articles</span>
-            <span>🕐 Updated: {updated_date}</span>
-        </div>
-    </div>
-
-    <div class="filters">
-        <div class="filter-row">
-            <div class="filter-group">
-                <label class="filter-label" for="journal-filter">Filter by Journal</label>
-                <select id="journal-filter" onchange="filterArticles()">
-                    <option value="all">All Journals</option>
-                    {''.join(f'<option value="{j}">{j}</option>' for j in journals_list)}
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label" for="topic-filter">Filter by Topic</label>
-                <select id="topic-filter" onchange="filterArticles()">
-                    <option value="all">All Topics</option>
-                    {''.join(f'<option value="{t}">{t}</option>' for t in topics_list)}
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label" for="sort-by">Sort by</label>
-                <select id="sort-by" onchange="sortArticles()">
-                    <option value="date-newest">Date (Newest First)</option>
-                    <option value="date-oldest">Date (Oldest First)</option>
-                    <option value="journal">Journal</option>
-                    <option value="title">Title (A-Z)</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="filter-row">
-            <div class="filter-group search">
-                <label class="filter-label" for="search">Search</label>
-                <input type="text" id="search" placeholder="Search titles..." onkeyup="filterArticles()">
-            </div>
-            <div class="checkbox-group">
-                <div class="checkbox-item">
-                    <input type="checkbox" id="oa-only" onchange="filterArticles()">
-                    <label for="oa-only">Open Access Only</label>
-                </div>
-                <div class="checkbox-item">
-                    <input type="checkbox" id="show-abstracts" onchange="toggleAbstracts()">
-                    <label for="show-abstracts">Show Abstracts</label>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="article-count" id="article-count">
-        Showing {total_articles} articles
-    </div>
-
-    <div id="feed-container" class="feed">
-"""
-
-    for article in all_articles:
-        topics_str = " ".join(article['topics'])
-        oa_attr = "true" if article['is_oa'] else "false"
-        oa_badge = '<span class="oa-badge">🔓 Open Access</span>' if article['is_oa'] else ''
-        
-        html += f"""
-        <div class="article" 
-             data-journal="{article['journal']}" 
-             data-topics="{topics_str}" 
-             data-title="{article['title'].lower()}" 
-             data-oa="{oa_attr}" 
-             data-date="{article['date'].timestamp()}">
-            
-            <div class="article-header">
-                <div class="article-title">
-                    <a href="{article['link']}" target="_blank">{article['title']}</a> {oa_badge}
-                </div>
-            </div>
-            
-            <div class="article-meta">
-                <span class="journal-badge">{article['journal']}</span>
-                <span class="authors">{article['authors']}</span>
-                <span class="date">{article['date_str']}</span>
-            </div>
-            
-            <div class="topics">
-                {''.join(f'<span class="topic-tag">{t}</span>' for t in article['topics'])}
-            </div>
-            
-            <div class="abstract">
-                {article['abstract']}
-            </div>
-            
-            <a href="{article['link']}" target="_blank" class="read-more">Read full article →</a>
-        </div>
-        """
-
-    html += """
-    </div>
-    <div class="no-results" id="no-results" style="display: none; text-align: center; padding: 2rem; color: #666;">
-        No articles match your current filters.
-    </div>
-</div>
-
-<script>
-    function toggleAbstracts() {
-        const show = document.getElementById('show-abstracts').checked;
-        document.querySelectorAll('.abstract').forEach(el => {
-            el.classList.toggle('visible', show);
-        });
-    }
-
-    function applySort() { return sortArticles(); } // Alias for safety
-
-    function sortArticles() {
-        const container = document.getElementById('feed-container');
-        const cards = Array.from(container.children);
-        const criteria = document.getElementById('sort-by').value;
-
-        cards.sort((a, b) => {
-            if (criteria === 'date-newest') return b.dataset.date - a.dataset.date;
-            if (criteria === 'date-oldest') return a.dataset.date - b.dataset.date;
-            if (criteria === 'journal') return a.dataset.journal.localeCompare(b.dataset.journal);
-            if (criteria === 'title') return a.dataset.title.localeCompare(b.dataset.title);
-        });
-
-        cards.forEach(card => container.appendChild(card));
-    }
-
-    function filterArticles() {
-        const journal = document.getElementById('journal-filter').value;
-        const topic = document.getElementById('topic-filter').value;
-        const search = document.getElementById('search').value.toLowerCase();
-        const oaOnly = document.getElementById('oa-only').checked;
-        let visibleCount = 0;
-
-        document.querySelectorAll('.article').forEach(card => {
-            const matchesJournal = journal === 'all' || card.dataset.journal === journal;
-            const matchesTopic = topic === 'all' || card.dataset.topics.includes(topic);
-            const matchesSearch = card.dataset.title.includes(search);
-            const matchesOA = !oaOnly || card.dataset.oa === 'true';
-
-            if (matchesJournal && matchesTopic && matchesSearch && matchesOA) {
-                card.style.display = 'block';
-                visibleCount++;
-            } else {
-                card.style.display = 'none';
-            }
-        });
-
-        // Update count
-        const countText = visibleCount === 1 ? 'article' : 'articles';
-        document.getElementById('article-count').innerText = `Showing ${visibleCount} ${countText}`;
-        
-        // Show/Hide "No Results"
-        const noResults = document.getElementById('no-results');
-        const feed = document.getElementById('feed-container');
-        if (visibleCount === 0) {
-            feed.style.display = 'none';
-            noResults.style.display = 'block';
-        } else {
-            feed.style.display = 'flex';
-            noResults.style.display = 'none';
-        }
-    }
-</script>
-</body>
-</html>
-"""
-    
-    with open(output_file, "w", encoding='utf-8') as f:
-        f.write(html)
-    print(f"HTML generated: {output_file}")
-
-def main():
-    all_articles = []
-    for journal in JOURNALS:
-        all_articles.extend(fetch_feed(journal))
-    
-    # Default sort: Newest first
-    all_articles.sort(key=lambda x: x['date'], reverse=True)
-    
-    generate_html(all_articles)
-
-if __name__ == "__main__":
-    main()
+            font-size: 0.
