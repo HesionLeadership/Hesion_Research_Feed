@@ -146,7 +146,7 @@ def generate_html(all_articles):
     total_articles = len(all_articles)
     updated_date = dt.now().strftime("%B %d, %Y")
     
-    journals_list = sorted(list(set(a['journal'] for a in all_articles)))
+    journals_list = sorted([j['name'] for j in JOURNALS])
     
     topics_set = set()
     for a in all_articles:
