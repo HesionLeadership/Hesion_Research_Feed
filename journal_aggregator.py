@@ -9,7 +9,7 @@ import os
 COLOR_BG = "#FFFFFF"         # Light background
 COLOR_TEXT = "#373535"       # Black text
 COLOR_ACCENT = "#926A47"     # Dark Gold/Brown (Links, Buttons)
-COLOR_PRIMARY = "#D3C3A7"    # Gold (Borders)
+COLOR_PRIMARY = "#FFFFFF"    # Gold (Borders)
 
 # --- JOURNALS LIST ---
 JOURNALS = [
