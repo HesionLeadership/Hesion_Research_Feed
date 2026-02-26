@@ -320,19 +320,21 @@ def generate_html(all_articles):
         </div>
 
         <div class="filter-row">
-            <div class="filter-group search">
-                <span class="label">Search</span>
-                <input type="text" id="searchInput" placeholder="Keywords..." onkeyup="runFilter()">
-            </div>
-            <div class="checkbox-group">
-    <input type="checkbox" id="oaCheck" onchange="runFilter()">
-    <label for="oaCheck">Open Access Only</label>
-</div>
-<div class="checkbox-group">
-    <input type="checkbox" id="abstractCheck" onchange="toggleAbstracts()">
-    <label for="abstractCheck">Show Abstracts</label>
-</div>
+    <div class="filter-group search">
+        <span class="label">Search</span>
+        <input type="text" id="searchInput" placeholder="Keywords..." onkeyup="runFilter()">
+    </div>
+    <div style="display: flex; align-items: center; gap: 1rem; padding-top: 1.6rem;">
+        <div class="checkbox-group" style="padding-top: 0;">
+            <input type="checkbox" id="oaCheck" onchange="runFilter()">
+            <label for="oaCheck">Open Access Only</label>
         </div>
+        <div class="checkbox-group" style="padding-top: 0;">
+            <input type="checkbox" id="abstractCheck" onchange="toggleAbstracts()">
+            <label for="abstractCheck">Show Abstracts</label>
+        </div>
+    </div>
+</div>
     </div>
 
     <div class="count-bar" id="countDisplay">Showing {total_articles} articles</div>
