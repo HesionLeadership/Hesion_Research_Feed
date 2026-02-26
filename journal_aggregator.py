@@ -6,10 +6,10 @@ import time
 import os
 
 # --- HESION BRANDING COLORS ---
-COLOR_BG = "#F2EDE4"         # Light background
+COLOR_BG = "#FFFFFF"         # Light background
 COLOR_TEXT = "#373535"       # Black text
 COLOR_ACCENT = "#926A47"     # Dark Gold/Brown (Links, Buttons)
-COLOR_PRIMARY = "#FFFFFF"    # Gold (Borders)
+COLOR_PRIMARY = "#D3C3A7"    # Gold (Borders)
 
 # --- JOURNALS LIST ---
 JOURNALS = [
@@ -176,7 +176,7 @@ def generate_html(all_articles):
 
         /* HEADER */
         .header-card {{
-            background: white;
+            background: #F2EDE4;
             padding: 2rem;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -191,7 +191,7 @@ def generate_html(all_articles):
 
         /* FILTERS - ORIGINAL 2-ROW LAYOUT */
         .filters {{
-            background: white;
+            background: #F2EDE4;
             padding: 1.25rem;
             border-radius: 8px;
             margin-bottom: 1.5rem;
@@ -245,7 +245,7 @@ def generate_html(all_articles):
         .feed {{ display: flex; flex-direction: column; gap: 1rem; }}
         
         .article {{
-            background: white;
+            background: #F2EDE4;
             padding: 1.25rem;
             border-radius: 6px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
