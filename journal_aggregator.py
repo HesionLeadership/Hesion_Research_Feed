@@ -50,7 +50,7 @@ def fetch_semantic_scholar_abstract(doi):
     except Exception:
         return ""
 
-def fetch_feed(journal, max_articles=50):
+def fetch_feed(journal, max_articles=100):
     try:
         print(f"Fetching {journal['name']}...")
         ninety_days_ago = dt.now() - timedelta(days=90)
