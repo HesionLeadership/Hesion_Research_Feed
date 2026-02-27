@@ -83,7 +83,8 @@ def fetch_feed(journal, max_articles=20):
                             date_str = pub_date.strftime("%B %d, %Y")
                             break
                 
-                if not pub_date or pub_date < ninety_days_ago:
+                six_months_ahead = dt.now() + timedelta(days=180)
+                if not pub_date or (pub_date < ninety_days_ago and pub_date > six_months_ahead):
                     continue
 
                 authors = []
@@ -118,7 +119,8 @@ def fetch_feed(journal, max_articles=20):
                     "journal": journal['name'],
                     "topics": topics,
                     "abstract": abstract,
-                    "is_oa": is_oa
+                    "is_oa": is_oa,
+                    "in_press": pub_date > dt.now()
                 })
         return articles
     except Exception as e:
@@ -358,6 +360,7 @@ def generate_html(all_articles):
         topics_str = " ".join(article['topics'])
         oa_val = "true" if article['is_oa'] else "false"
         oa_icon = '<span style="font-size:0.75rem; color:#4CAF50; font-weight:700; border:1px solid #4CAF50; border-radius:4px; padding:1px 5px;">OA</span>' if article['is_oa'] else ''
+        in_press_icon = '<span style="font-size:0.75rem; color:#926A47; font-weight:700; border:1px solid #926A47; border-radius:4px; padding:1px 5px;">In Press</span>' if article['in_press'] else ''
         
         html += f"""
         <div class="article" 
@@ -368,7 +371,7 @@ def generate_html(all_articles):
              data-oa="{oa_val}">
              
             <div class="article-title">
-                <a href="{article['link']}" target="_blank">{article['title']}</a> {oa_icon}
+                <a href="{article['link']}" target="_blank">{article['title']}</a> {oa_icon} {in_press_icon}
             </div>
             
             <div class="article-meta">
