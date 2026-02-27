@@ -50,7 +50,7 @@ def fetch_semantic_scholar_abstract(doi):
     except Exception:
         return ""
 
-def fetch_feed(journal, max_articles=20):
+def fetch_feed(journal, max_articles=50):
     try:
         print(f"Fetching {journal['name']}...")
         ninety_days_ago = dt.now() - timedelta(days=90)
@@ -84,7 +84,7 @@ def fetch_feed(journal, max_articles=20):
                             break
                 
                 six_months_ahead = dt.now() + timedelta(days=180)
-                if not pub_date or (pub_date < ninety_days_ago and pub_date > six_months_ahead):
+                if not pub_date or (pub_date < ninety_days_ago or pub_date > six_months_ahead):
                     continue
 
                 authors = []
@@ -359,8 +359,8 @@ def generate_html(all_articles):
     for article in all_articles:
         topics_str = " ".join(article['topics'])
         oa_val = "true" if article['is_oa'] else "false"
-        oa_icon = '<span style="font-size:0.75rem; color:#4CAF50; font-weight:700; border:1px solid #4CAF50; border-radius:4px; padding:1px 5px;">OA</span>' if article['is_oa'] else ''
-        in_press_icon = '<span style="font-size:0.75rem; color:#926A47; font-weight:700; border:1px solid #926A47; border-radius:4px; padding:1px 5px;">In Press</span>' if article['in_press'] else ''
+        oa_icon = '<span style="font-size:0.75rem; color:#0B2265; font-weight:700; border:1px solid #0B2265; border-radius:4px; padding:1px 5px;">OA</span>' if article['is_oa'] else ''
+        in_press_icon = '<span style="font-size:0.75rem; color:#558689; font-weight:700; border:1px solid #558689; border-radius:4px; padding:1px 5px;">In Press</span>' if article['in_press'] else ''
         
         html += f"""
         <div class="article" 
