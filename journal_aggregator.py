@@ -57,7 +57,7 @@ def fetch_feed(journal, max_articles=100):
         date_filter = ninety_days_ago.strftime("%Y-%m-%d")
         
         base_url = f"https://api.crossref.org/journals/{journal['issn']}/works"
-        params = f"?rows={max_articles}&filter=from-online-pub-date:{date_filter}&sort=published&order=desc"
+        params = f"?rows={max_articles}&filter=from-pub-date:{date_filter}&sort=published&order=desc"
         url = base_url + params
         
         req = urllib.request.Request(url, headers={'User-Agent': 'HesionResearchFeed/1.0'})
