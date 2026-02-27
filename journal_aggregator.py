@@ -359,7 +359,7 @@ def generate_html(all_articles):
     for article in all_articles:
         topics_str = " ".join(article['topics'])
         oa_val = "true" if article['is_oa'] else "false"
-        oa_icon = '<span style="font-size:0.75rem; color:#0B2265; font-weight:700; border:1px solid #0B2265; border-radius:4px; padding:1px 5px;">OA</span>' if article['is_oa'] else ''
+        oa_icon = '<span style="font-size:0.75rem; color:#558689; font-weight:700; border:1px solid #558689; border-radius:4px; padding:1px 5px;">OA</span>' if article['is_oa'] else ''
         in_press_icon = '<span style="font-size:0.75rem; color:#558689; font-weight:700; border:1px solid #558689; border-radius:4px; padding:1px 5px;">In Press</span>' if article['in_press'] else ''
         
         html += f"""
