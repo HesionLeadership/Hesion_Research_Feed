@@ -36,6 +36,12 @@ JOURNALS = [
     {"name": "Personnel Psychology", "issn": "1744-6570"},
     {"name": "The Leadership Quarterly", "issn": "1048-9843"},
     {"name": "Work & Stress", "issn": "1464-5335"}
+    {"name": "Academy of Management Annals", "publisher": "AOM", "issn": "1941-6520", "color": "#8B0000"},
+    {"name": "Academy of Management Discoveries", "publisher": "AOM", "issn": "2168-1007", "color": "#C71585"},
+    {"name": "Academy of Management Perspectives", "publisher": "AOM", "issn": "1558-9080", "color": "#B22222"},
+    {"name": "Human Resource Management Review", "publisher": "Elsevier", "issn": "1053-4822", "color": "#2E8B57"},
+    {"name": "Journal of Research in Personality", "publisher": "Elsevier", "issn": "0092-6566", "color": "#4169E1"},
+    {"name": "Research in Organizational Behavior", "publisher": "Elsevier", "issn": "0191-3085", "color": "#8B008B"},
 ]
 
 def fetch_semantic_scholar_abstract(doi):
