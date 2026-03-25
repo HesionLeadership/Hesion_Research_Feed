@@ -35,7 +35,7 @@ JOURNALS = [
     {"name": "Organizational Psychology Review", "issn": "2041-3866"},
     {"name": "Personnel Psychology", "issn": "1744-6570"},
     {"name": "The Leadership Quarterly", "issn": "1048-9843"},
-    {"name": "Work & Stress", "issn": "1464-5335"}
+    {"name": "Work & Stress", "issn": "1464-5335"},
     {"name": "Academy of Management Annals", "publisher": "AOM", "issn": "1941-6520", "color": "#8B0000"},
     {"name": "Academy of Management Discoveries", "publisher": "AOM", "issn": "2168-1007", "color": "#C71585"},
     {"name": "Academy of Management Perspectives", "publisher": "AOM", "issn": "1558-9080", "color": "#B22222"},
